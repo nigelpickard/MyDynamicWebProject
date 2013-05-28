@@ -2,7 +2,10 @@ package com.npickard.testservlet;
 
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.util.List;
 
+import javax.naming.InitialContext;
+import javax.naming.NamingException;
 import javax.persistence.EntityManagerFactory;
 import javax.persistence.PersistenceUnit;
 import javax.servlet.ServletException;
@@ -10,8 +13,11 @@ import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
 
 import model.Friend;
+
+import com.npickard.testejb.FriendEJB;
 
 /**
  * Servlet implementation class MyTestServlet
@@ -50,7 +56,13 @@ public class MyTestServlet extends HttpServlet {
 		
 		Friend f = (Friend)emf.createEntityManager().createQuery("select f from Friend f").getResultList().get(0);
 		pw.print(" Friend retrieved is " + f.getName()  + " and is " + f.getAge() + " years old.");
+		FriendEJB fejb = getFriendEJB(request);
 		
+		List<Friend> friendList = fejb.getFriendList();
+		
+		for (Friend fr : friendList){
+			pw.print("<br>" + fr.getName());
+		}
 		
 		pw.print("</body></html>");
 		
@@ -62,5 +74,26 @@ public class MyTestServlet extends HttpServlet {
 	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
 		// TODO Auto-generated method stub
 	}
+	
+	 private FriendEJB getFriendEJB(HttpServletRequest request)
+	         throws ServletException {
+		 
+		 String key = "FRIEND_EJB";
+		 
+	     HttpSession httpSession = request.getSession(true);
+	     FriendEJB fejb = (FriendEJB)httpSession.getAttribute(key);
+	     if (fejb == null) {
+	         try {
+	             InitialContext ic = new InitialContext();
+	             
+	             fejb = (FriendEJB) ic.lookup("java:module/FriendEJB");
+	             httpSession.setAttribute(key, fejb);
+	           
+	         } catch (NamingException e) {
+	             throw new ServletException(e);
+	         }
+	     }
+	     return fejb;
+	 }
 
 }
